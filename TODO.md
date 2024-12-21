@@ -14,3 +14,4 @@
 
 - Add help
 - Support recursive deleting
+- Set `ConfirmImpact` to `High`
