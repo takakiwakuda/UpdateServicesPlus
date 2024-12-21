@@ -8,17 +8,21 @@ class TestComputerTargetGroup : IComputerTargetGroup {
     [scriptblock] $DeleteAction
 
     TestComputerTargetGroup() {
-        $this.Init()
+        $this.Init("test")
+    }
+
+    TestComputerTargetGroup([string] $Name) {
+        $this.Init($Name)
     }
 
     TestComputerTargetGroup([scriptblock] $deleteAction) {
-        $this.Init()
+        $this.Init("test")
         $this.DeleteAction = $deleteAction
     }
 
-    [void] Init() {
+    [void] Init([string] $Name) {
         $this.Id = [guid]::NewGuid()
-        $this.Name = "test"
+        $this.Name = $Name
         $this.LastActivity = ""
     }
 
@@ -44,7 +48,7 @@ class TestUpdateServer : IUpdateServer {
     [scriptblock] $CreateComputerTargetGroupAction
 
     TestUpdateServer() {
-        $this.Init({ return [TestComputerTargetGroup]::new() })
+        $this.Init({ param([string]$Name) return [TestComputerTargetGroup]::new($Name) })
     }
 
     TestUpdateServer([scriptblock] $createComputerTargetGroupAction) {
@@ -56,7 +60,7 @@ class TestUpdateServer : IUpdateServer {
     }
 
     [IComputerTargetGroup] CreateComputerTargetGroup([string] $name) {
-        return & $this.CreateComputerTargetGroupAction
+        return & $this.CreateComputerTargetGroupAction $name
     }
 
     [ComputerTargetGroupCollection] GetComputerTargetGroups() {

@@ -9,17 +9,21 @@ BeforeDiscovery {
 
 Describe "UpdateServicesPlus" {
     BeforeAll {
-        function Assert-Result {
+        function Assert-ComputerGroup {
             param (
                 [Parameter(Mandatory, ValueFromPipeline)]
                 [AllowNull()]
                 [Microsoft.UpdateServices.Administration.IComputerTargetGroup[]]
-                $Groups
+                $Groups,
+
+                [Parameter(Position = 0)]
+                [string]
+                $Name = "test"
             )
 
             $Groups | Should -BeOfType Microsoft.UpdateServices.Administration.IComputerTargetGroup
             $Groups.Id | Should -Not -Be ([guid]::Empty)
-            $Groups.Name | Should -Be test
+            $Groups.Name | Should -Be $Name
         }
 
         $GetWsusServerMock = @{
@@ -33,18 +37,18 @@ Describe "UpdateServicesPlus" {
         It "Gets WSUS computer groups on the default update server" {
             Mock @GetWsusServerMock -Verifiable
 
-            Get-WsusComputerGroup | Assert-Result
+            Get-WsusComputerGroup | Assert-ComputerGroup
             Should -InvokeVerifiable
         }
 
         It "Gets WSUS computer groups with the specified update server" {
             $server = Get-TestUpdateServer
 
-            Get-WsusComputerGroup -UpdateServer $server | Assert-Result
+            Get-WsusComputerGroup -UpdateServer $server | Assert-ComputerGroup
         }
 
         It "Gets WSUS computer groups from the piped update server" {
-            Get-TestUpdateServer | Get-WsusComputerGroup | Assert-Result
+            Get-TestUpdateServer | Get-WsusComputerGroup | Assert-ComputerGroup
         }
     }
 
@@ -81,7 +85,7 @@ Describe "UpdateServicesPlus" {
 
         It "Throws an exception if a WSUS computer group already exists" {
             $server = Get-TestUpdateServerThrowsWsusObjectAlreadyExistsException
-            $name = "test"
+            $name = "existing group"
             $params = @{ UpdateServer = $server; Name = $name; ErrorAction = "Stop" }
 
             $er = { New-WsusComputerGroup @params } | Should -Throw -PassThru
@@ -93,25 +97,29 @@ Describe "UpdateServicesPlus" {
 
         It "Creates a WSUS computer group on the default update server" {
             Mock @GetWsusServerMock -Verifiable
+            $name = "group01"
 
-            New-WsusComputerGroup -Name test | Assert-Result
+            New-WsusComputerGroup -Name $name | Assert-ComputerGroup $name
             Should -InvokeVerifiable
         }
 
         It "Creates a WSUS computer group with the specified update server" {
             $server = Get-TestUpdateServer
+            $name = "group02"
 
-            New-WsusComputerGroup -UpdateServer $server -Name test | Assert-Result
+            New-WsusComputerGroup -UpdateServer $server -Name $name | Assert-ComputerGroup $name
         }
 
         It "Creates a WSUS computer group from the piped update server" {
-            Get-TestUpdateServer | New-WsusComputerGroup -Name test | Assert-Result
+            $name = "group03"
+
+            Get-TestUpdateServer | New-WsusComputerGroup -Name $name | Assert-ComputerGroup $name
         }
 
         It "Show a message without creating a WSUS computer group" {
             Mock @GetWsusServerMock -Verifiable
 
-            New-WsusComputerGroup -Name test -WhatIf | Should -BeNullOrEmpty
+            New-WsusComputerGroup -Name "do not create" -WhatIf | Should -BeNullOrEmpty
             Should -InvokeVerifiable
         }
     }
