@@ -83,19 +83,19 @@ function Remove-WsusComputerGroup {
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
         [Microsoft.UpdateServices.Administration.IComputerTargetGroup]
-        $ComputerTargetGroup
+        $TargetGroup
     )
 
     process {
-        if ($PSCmdlet.ShouldProcess($ComputerTargetGroup.Name, "Delete computer target group")) {
+        if ($PSCmdlet.ShouldProcess($TargetGroup.Name, "Delete computer target group")) {
             try {
-                $ComputerTargetGroup.Delete()
+                $TargetGroup.Delete()
             } catch [System.InvalidOperationException] {
                 $errorRecord = [System.Management.Automation.ErrorRecord]::new(
                     $_.Exception,
                     "DeleteWsusComputerTargetGroupFailed",
                     [System.Management.Automation.ErrorCategory]::InvalidOperation,
-                    $ComputerTargetGroup
+                    $TargetGroup
                 )
 
                 $PSCmdlet.WriteError($errorRecord)

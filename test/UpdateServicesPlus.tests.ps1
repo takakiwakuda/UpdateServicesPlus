@@ -165,7 +165,7 @@ Describe "UpdateServicesPlus" {
     Context "Remove-WsusComputerGroup" {
         It "Throws an exception when removing an invalid WSUS computer group" {
             $group = Get-TestComputerGroupThrowsInvalidOperationException
-            $params = @{ ComputerTargetGroup = $group; ErrorAction = "Stop" }
+            $params = @{ TargetGroup = $group; ErrorAction = "Stop" }
 
             $er = { Remove-WsusComputerGroup @params } | Should -Throw -PassThru
             $er.Exception | Should -BeOfType System.InvalidOperationException
@@ -178,7 +178,7 @@ Describe "UpdateServicesPlus" {
         It "Removes a WSUS computer group" {
             $group = Get-TestComputerGroup
 
-            { Remove-WsusComputerGroup -ComputerTargetGroup $group -ErrorAction Stop } | Should -Not -Throw
+            { Remove-WsusComputerGroup -TargetGroup $group -ErrorAction Stop } | Should -Not -Throw
             $group.LastActivity | Should -Be "Delete"
         }
 
@@ -192,7 +192,7 @@ Describe "UpdateServicesPlus" {
         It "Shows a message without removing a WSUS computer group" {
             $group = Get-TestComputerGroup
 
-            { Remove-WsusComputerGroup -ComputerTargetGroup $group -WhatIf } | Should -Not -Throw
+            { Remove-WsusComputerGroup -TargetGroup $group -WhatIf } | Should -Not -Throw
             $group.LastActivity | Should -BeNullOrEmpty
         }
     }
