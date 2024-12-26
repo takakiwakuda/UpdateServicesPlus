@@ -1,17 +1,26 @@
 ﻿function Get-WsusComputerGroup {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = "AllTargetGroups")]
     [OutputType([Microsoft.UpdateServices.Administration.IComputerTargetGroup])]
     param (
         [Parameter(ValueFromPipeline)]
         [Microsoft.UpdateServices.Administration.IUpdateServer]
-        $UpdateServer
+        $UpdateServer,
+
+        [Parameter(Mandatory, ParameterSetName = "ID")]
+        [guid]
+        $TargetGroupId
     )
 
     process {
         if ($null -eq $UpdateServer) {
             $UpdateServer = Get-WsusServer
         }
-        $UpdateServer.GetComputerTargetGroups()
+
+        if ($PSCmdlet.ParameterSetName -eq "ID") {
+            Get-ComputerGroupWithId -UpdateServer $UpdateServer -Id $TargetGroupId
+        } else {
+            $UpdateServer.GetComputerTargetGroups()
+        }
     }
 }
 
@@ -94,5 +103,33 @@ function Remove-WsusComputerGroup {
         }
     }
 }
+
+#region Utility functions
+function Get-ComputerGroupWithId {
+    [OutputType([Microsoft.UpdateServices.Administration.IComputerTargetGroup])]
+    param (
+        [Microsoft.UpdateServices.Administration.IUpdateServer]
+        $UpdateServer,
+
+        [guid]
+        $Id
+    )
+
+    try {
+        $UpdateServer.GetComputerTargetGroup($Id)
+    } catch [Microsoft.UpdateServices.Administration.WsusObjectNotFoundException] {
+        $errorRecord = [System.Management.Automation.ErrorRecord]::new(
+            $_.Exception,
+            "WsusComputerTargetGroupNotFound",
+            [System.Management.Automation.ErrorCategory]::ObjectNotFound,
+            $Id
+        )
+        $message = "Cannot find the WSUS computer group with the specified ID '{0}'." -f $Id
+        $errorRecord.ErrorDetails = [System.Management.Automation.ErrorDetails]::new($message)
+
+        $PSCmdlet.WriteError($errorRecord)
+    }
+}
+#endregion
 
 Export-ModuleMember -Function Get-WsusComputerGroup, New-WsusComputerGroup, Remove-WsusComputerGroup

@@ -1,6 +1,8 @@
 ﻿using namespace System
 using namespace Microsoft.UpdateServices.Administration
 
+$Script:TestTargetGroupId = [guid]::NewGuid()
+
 class TestComputerTargetGroup : IComputerTargetGroup {
     [guid]$Id
     [string]$Name
@@ -8,21 +10,34 @@ class TestComputerTargetGroup : IComputerTargetGroup {
     [scriptblock] $DeleteAction
 
     TestComputerTargetGroup() {
-        $this.Init("test")
+        $this.Init($null, "")
     }
 
-    TestComputerTargetGroup([string] $Name) {
-        $this.Init($Name)
+    TestComputerTargetGroup([guid] $id) {
+        $this.Init($id, "")
+    }
+
+    TestComputerTargetGroup([string] $name) {
+        $this.Init($null, $Name)
     }
 
     TestComputerTargetGroup([scriptblock] $deleteAction) {
-        $this.Init("test")
+        $this.Init($null, "")
         $this.DeleteAction = $deleteAction
     }
 
-    [void] Init([string] $Name) {
-        $this.Id = [guid]::NewGuid()
-        $this.Name = $Name
+    [void] Init([Nullable[guid]] $id, [string] $name) {
+        if ($null -ne $id) {
+            $this.Id = $id
+        } else {
+            $this.Id = [guid]::NewGuid()
+        }
+
+        if ($name.Length -eq 0) {
+            $this.Name = "test"
+        } else {
+            $this.Name = $name
+        }
         $this.LastActivity = ""
     }
 
@@ -63,6 +78,13 @@ class TestUpdateServer : IUpdateServer {
         return & $this.CreateComputerTargetGroupAction $name
     }
 
+    [IComputerTargetGroup] GetComputerTargetGroup([guid] $id) {
+        if ($id -ne $Script:TestTargetGroupId) {
+            throw [WsusObjectNotFoundException]::new()
+        }
+        return [TestComputerTargetGroup]::new($id)
+    }
+
     [ComputerTargetGroupCollection] GetComputerTargetGroups() {
         $groups = [ComputerTargetGroupCollection]::new()
         $groups.Add([TestComputerTargetGroup]::new())
@@ -94,3 +116,5 @@ function Get-TestUpdateServerThrowsInvalidOperationException {
 function Get-TestUpdateServerThrowsWsusObjectAlreadyExistsException {
     [TestUpdateServer]::new({ throw [WsusObjectAlreadyExistsException]::new() })
 }
+
+Export-ModuleMember -Function * -Variable *

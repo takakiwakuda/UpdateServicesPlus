@@ -18,11 +18,19 @@ Describe "UpdateServicesPlus" {
 
                 [Parameter(Position = 0)]
                 [string]
-                $Name = "test"
+                $Name = "test",
+
+                [Parameter(Position = 1)]
+                [guid]
+                $Id = [guid]::Empty
             )
 
             $Groups | Should -BeOfType Microsoft.UpdateServices.Administration.IComputerTargetGroup
-            $Groups.Id | Should -Not -Be ([guid]::Empty)
+            if ($Id -eq [guid]::Empty) {
+                $Groups.Id | Should -Not -Be $Id
+            } else {
+                $Groups.Id | Should -Be $Id
+            }
             $Groups.Name | Should -Be $Name
         }
 
@@ -34,6 +42,19 @@ Describe "UpdateServicesPlus" {
     }
 
     Context "Get-WsusComputerGroup" {
+        It "Throws an exception if the WSUS computer group with the specified ID does not exist" {
+            $targetGroupId = [guid]::Empty
+            Mock @GetWsusServerMock -Verifiable
+
+            $er = { Get-WsusComputerGroup -TargetGroupId $targetGroupId -ErrorAction Stop } | Should -Throw -PassThru
+            $er.Exception | Should -BeOfType Microsoft.UpdateServices.Administration.WsusObjectNotFoundException
+            $er.ErrorDetails.Message | Should -Be "Cannot find the WSUS computer group with the specified ID '$targetGroupId'."
+            $er.FullyQualifiedErrorId | Should -Be "WsusComputerTargetGroupNotFound,Get-WsusComputerGroup"
+            $er.TargetObject | Should -Be $targetGroupId
+            $er.CategoryInfo.Category | Should -Be ObjectNotFound
+            Should -InvokeVerifiable
+        }
+
         It "Gets WSUS computer groups on the default update server" {
             Mock @GetWsusServerMock -Verifiable
 
@@ -49,6 +70,23 @@ Describe "UpdateServicesPlus" {
 
         It "Gets WSUS computer groups from the piped update server" {
             Get-TestUpdateServer | Get-WsusComputerGroup | Assert-ComputerGroup
+        }
+
+        It "Gets WSUS computer group with the specified ID" {
+            Mock @GetWsusServerMock -Verifiable
+
+            Get-WsusComputerGroup -TargetGroupId $TestTargetGroupId | Assert-ComputerGroup -Id $TestTargetGroupId
+            Should -InvokeVerifiable
+        }
+
+        It "Gets WSUS computer groups with the specified update server and ID" {
+            $params = @{ UpdateServer = Get-TestUpdateServer; TargetGroupId = $TestTargetGroupId }
+
+            Get-WsusComputerGroup @params | Assert-ComputerGroup -Id $TestTargetGroupId
+        }
+
+        It "Gets WSUS computer groups with the specified ID from the piped update server" {
+            Get-TestUpdateServer | Get-WsusComputerGroup -TargetGroupId $TestTargetGroupId | Assert-ComputerGroup -Id $TestTargetGroupId
         }
     }
 
